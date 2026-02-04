@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # AI女友机器人主服务
+  ai-girlfriend-bot:
+    build: .
+    container_name: ai-girlfriend-bot
+    restart: unless-stopped
+    
+    environment:
+      # Telegram Bot Token (必填)
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      
+      # LLM配置
+      - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_MODEL=${GOOGLE_MODEL:-gemini-pro}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-sonnet-20240229}
+      - LOCAL_MODEL_URL=${LOCAL_MODEL_URL:-http://localhost:11434}
+      - LOCAL_MODEL_NAME=${LOCAL_MODEL_NAME:-llama2-chinese}
+      
+      # 数据库配置
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///data/bot_memory.db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - USE_REDIS=${USE_REDIS:-false}
+      - CHROMA_PERSIST_DIR=/app/data/chroma
+      
+      # 人设配置
+      - PERSONA_CONFIG_PATH=/app/config/persona_default.yaml
+      
+      # 功能开关
+      - AFFECTION_ENABLED=${AFFECTION_ENABLED:-true}
+      - MEMORY_ENABLED=${MEMORY_ENABLED:-true}
+      - INITIATIVE_ENABLED=${INITIATIVE_ENABLED:-true}
+      - LEARNING_ENABLED=${LEARNING_ENABLED:-true}
+      
+      # 日志
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TIMEZONE=${TIMEZONE:-Asia/Shanghai}
+      
+      # 管理员
+      - ADMIN_USER_IDS=${ADMIN_USER_IDS}
+    
+    volumes:
+      # 数据持久化
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # 人设配置（可自定义）
+      - ./config:/app/config
+    
+    networks:
+      - ai-gf-network
+    
+    depends_on:
+      - redis
+      - chroma
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis缓存服务（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: ai-gf-redis
+    restart: unless-stopped
+    
+    volumes:
+      - redis-data:/data
+    
+    networks:
+      - ai-gf-network
+    
+    # 仅在USE_REDIS=true时启动
+    profiles:
+      - with-redis
+
+  # ChromaDB向量数据库服务
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: ai-gf-chroma
+    restart: unless-stopped
+    
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    
+    volumes:
+      - chroma-data:/chroma/chroma
+    
+    networks:
+      - ai-gf-network
+    
+    ports:
+      - "8000:8000"  # 用于外部访问ChromaDB
+
+  # 本地模型服务（Ollama）（可选）
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-gf-ollama
+    restart: unless-stopped
+    
+    volumes:
+      - ollama-data:/root/.ollama
+    
+    networks:
+      - ai-gf-network
+    
+    # GPU支持（需要NVIDIA Docker运行时）
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    profiles:
+      - with-ollama
+
+  # Web管理界面（可选）
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    container_name: ai-gf-admin
+    restart: unless-stopped
+    
+    environment:
+      - BOT_DATA_PATH=/app/data
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+    
+    volumes:
+      - ./data:/app/data:ro
+    
+    ports:
+      - "8080:8080"
+    
+    networks:
+      - ai-gf-network
+    
+    profiles:
+      - with-admin
+
+volumes:
+  redis-data:
+  chroma-data:
+  ollama-data:
+
+networks:
+  ai-gf-network:
+    driver: bridge
