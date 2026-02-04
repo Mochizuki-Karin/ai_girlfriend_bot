@@ -15,6 +15,7 @@ import chromadb
 from chromadb.config import Settings as ChromaSettings
 
 def init_chroma_client():
+
     settings = ChromaSettings(
         chroma_server_host='chroma',
         chroma_server_http_port=8000,
@@ -30,21 +31,17 @@ def init_chroma_client():
         try:
             admin_client.create_database(name="default_database", tenant="default_tenant")
         except Exception:
-            pass
+            pass  
     except Exception:
         logger.warning("AdminClient not available, skipping tenant/database creation")
     
     client = chromadb.HttpClient(
-        host='chroma',
-        port=8000,
         tenant='default_tenant',
         database='default_database',
         settings=settings
     )
     return client
-
-client = init_chroma_client()
-
+    
 import numpy as np
 
 
