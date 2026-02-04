@@ -1,36 +1,36 @@
-# AI Girlfriend Bot - Docker镜像
+# AI Girlfriend Bot - Dockerイメージ
 FROM python:3.11-slim
 
-# 设置工作目录
+# ワーキングディレクトリを設定
 WORKDIR /app
 
-# 安装系统依赖
+# システム依存関係をインストール
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制依赖文件
+# 依存ファイルをコピー
 COPY requirements.txt .
 
-# 安装Python依赖
+# Python依存関係をインストール
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制应用代码
+# アプリケーションコードをコピー
 COPY src/ ./src/
 COPY config/ ./config/
 
-# 创建数据目录
+# データディレクトリを作成
 RUN mkdir -p data logs
 
-# 设置环境变量
+# 環境変数を設定
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# 健康检查
+# ヘルスチェック
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8080/health')" || exit 1
 
-# 启动命令
+# 起動コマンド
 CMD ["python", "-m", "src.bot"]
