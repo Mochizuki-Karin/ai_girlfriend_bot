@@ -12,7 +12,8 @@ import asyncio
 from loguru import logger
 
 import chromadb
-from chromadb.config import Settings as ChromaSettings
+client = chromadb.HttpClient(host='chroma', port=8000) #docker
+#client = chromadb.PersistentClient(path="/path/to/db")   （path）
 import numpy as np
 
 
