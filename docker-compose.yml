@@ -1,17 +1,17 @@
 version: '3.8'
 
 services:
-  # AI女友机器人主服务
+  # AI女友ロボットメインサービス
   ai-girlfriend-bot:
     build: .
     container_name: ai-girlfriend-bot
     restart: unless-stopped
     
     environment:
-      # Telegram Bot Token (必填)
+      # Telegram Bot Token (必須)
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       
-      # LLM配置
+      # LLM設定
       - DEFAULT_LLM_PROVIDER=${DEFAULT_LLM_PROVIDER:-openai}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
@@ -23,33 +23,33 @@ services:
       - LOCAL_MODEL_URL=${LOCAL_MODEL_URL:-http://localhost:11434}
       - LOCAL_MODEL_NAME=${LOCAL_MODEL_NAME:-llama2-chinese}
       
-      # 数据库配置
+      # データベース設定
       - DATABASE_URL=${DATABASE_URL:-sqlite:///data/bot_memory.db}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - USE_REDIS=${USE_REDIS:-false}
       - CHROMA_PERSIST_DIR=/app/data/chroma
       
-      # 人设配置
+      # キャラクター設定
       - PERSONA_CONFIG_PATH=/app/config/persona_default.yaml
       
-      # 功能开关
+      # 機能スイッチ
       - AFFECTION_ENABLED=${AFFECTION_ENABLED:-true}
       - MEMORY_ENABLED=${MEMORY_ENABLED:-true}
       - INITIATIVE_ENABLED=${INITIATIVE_ENABLED:-true}
       - LEARNING_ENABLED=${LEARNING_ENABLED:-true}
       
-      # 日志
+      # ログ
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - TIMEZONE=${TIMEZONE:-Asia/Shanghai}
       
-      # 管理员
+      # 管理者
       - ADMIN_USER_IDS=${ADMIN_USER_IDS}
     
     volumes:
-      # 数据持久化
+      # データ永続化
       - ./data:/app/data
       - ./logs:/app/logs
-      # 人设配置（可自定义）
+      # キャラクター設定（カスタマイズ可）
       - ./config:/app/config
     
     networks:
@@ -65,7 +65,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Redis缓存服务（可选）
+  # Redisキャッシュサービス（オプション）
   redis:
     image: redis:7-alpine
     container_name: ai-gf-redis
@@ -77,11 +77,11 @@ services:
     networks:
       - ai-gf-network
     
-    # 仅在USE_REDIS=true时启动
+    # USE_REDIS=trueの場合のみ起動
     profiles:
       - with-redis
 
-  # ChromaDB向量数据库服务
+  # ChromaDBベクターデータベースサービス
   chroma:
     image: chromadb/chroma:latest
     container_name: ai-gf-chroma
@@ -99,9 +99,9 @@ services:
       - ai-gf-network
     
     ports:
-      - "8000:8000"  # 用于外部访问ChromaDB
+      - "8000:8000"  # ChromaDBへの外部アクセス用
 
-  # 本地模型服务（Ollama）（可选）
+  # ローカルモデルサービス（Ollama）（オプション）
   ollama:
     image: ollama/ollama:latest
     container_name: ai-gf-ollama
@@ -113,7 +113,7 @@ services:
     networks:
       - ai-gf-network
     
-    # GPU支持（需要NVIDIA Docker运行时）
+    # GPUサポート（NVIDIA Dockerランタイムが必要）
     deploy:
       resources:
         reservations:
@@ -125,7 +125,7 @@ services:
     profiles:
       - with-ollama
 
-  # Web管理界面（可选）
+  # Web管理インターフェース（オプション）
   admin:
     build:
       context: .
