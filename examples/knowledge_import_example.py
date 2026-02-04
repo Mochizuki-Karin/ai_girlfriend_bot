@@ -15,7 +15,16 @@ from src.knowledge_system import KnowledgeImporter, KnowledgeItem
 async def import_text_examples():
     """テキストインポートの例"""
     
-    importer = KnowledgeImporter("./data/knowledge_examples")
+    chroma_config = {
+        "chroma_server_host": "chroma",
+        "chroma_server_http_port": 8000,
+        "anonymized_telemetry": False
+    }
+    
+    importer = KnowledgeImporter(
+        "./data/knowledge_examples",
+        chroma_config=chroma_config
+    )
     
     # 例1：ユーザーの個人情報をインポート
     personal_info = """
